@@ -3,7 +3,7 @@
 from .single_cell import SingleCellAnalyzer
 from .streaming_analyzer import (
     create_stimulus_generator,
-    create_spike_generator, 
+    create_spike_generator,
     create_aligned_generators,
     validate_generators
 )
@@ -15,7 +15,7 @@ from .exceptions import *
 __all__ = [
     'SingleCellAnalyzer',
     'StreamingDesignMatrix',
-    'StreamingFilterExtractor', 
+    'StreamingFilterExtractor',
     'NonparametricNonlinearity',
     'ParametricNonlinearity',
     'create_stimulus_generator',

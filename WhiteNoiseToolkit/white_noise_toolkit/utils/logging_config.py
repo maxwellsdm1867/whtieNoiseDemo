@@ -16,11 +16,11 @@ from ..core.exceptions import ConfigurationError
 
 class TimingLogger:
     """Context manager for timing operations with logging."""
-    
+
     def __init__(self, logger: logging.Logger, operation: str, level: int = logging.INFO):
         """
         Initialize timing logger.
-        
+
         Parameters
         ----------
         logger : logging.Logger
@@ -34,13 +34,13 @@ class TimingLogger:
         self.operation = operation
         self.level = level
         self.start_time = None
-    
+
     def __enter__(self):
         """Start timing."""
         self.start_time = time.time()
         self.logger.log(self.level, f"Starting {self.operation}...")
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         """End timing and log duration."""
         if self.start_time is not None:
@@ -51,7 +51,7 @@ class TimingLogger:
                 time_str = f"{duration:.1f} s"
             else:
                 time_str = f"{duration/60:.1f} min"
-            
+
             if exc_type is None:
                 self.logger.log(self.level, f"Completed {self.operation} in {time_str}")
             else:
@@ -60,11 +60,11 @@ class TimingLogger:
 
 class MemoryLogger:
     """Logger for memory usage monitoring."""
-    
+
     def __init__(self, logger: logging.Logger, memory_manager=None):
         """
         Initialize memory logger.
-        
+
         Parameters
         ----------
         logger : logging.Logger
@@ -74,11 +74,11 @@ class MemoryLogger:
         """
         self.logger = logger
         self.memory_manager = memory_manager
-    
+
     def log_memory_usage(self, context: str = "", level: int = logging.DEBUG):
         """
         Log current memory usage.
-        
+
         Parameters
         ----------
         context : str
@@ -90,23 +90,23 @@ class MemoryLogger:
             memory_info = self.memory_manager.get_memory_info()
             usage_gb = memory_info['current_usage_gb']
             usage_pct = memory_info['usage_fraction'] * 100
-            
+
             context_str = f" ({context})" if context else ""
             self.logger.log(
-                level, 
+                level,
                 f"Memory usage{context_str}: {usage_gb:.1f} GB ({usage_pct:.1f}%)"
             )
 
 
 class ProgressLogger:
     """Logger for progress tracking with optional memory monitoring."""
-    
-    def __init__(self, logger: logging.Logger, total_items: int, 
+
+    def __init__(self, logger: logging.Logger, total_items: int,
                  operation: str = "Processing", log_interval: int = 10,
                  memory_manager=None):
         """
         Initialize progress logger.
-        
+
         Parameters
         ----------
         logger : logging.Logger
@@ -128,49 +128,49 @@ class ProgressLogger:
         self.start_time = time.time()
         self.last_log_time = self.start_time
         self.processed_items = 0
-    
+
     def update(self, n_items: int = 1):
         """
         Update progress.
-        
+
         Parameters
         ----------
         n_items : int
             Number of items processed
         """
         self.processed_items += n_items
-        
+
         # Check if we should log progress
-        if (self.processed_items % self.log_interval == 0 or 
+        if (self.processed_items % self.log_interval == 0 or
             self.processed_items >= self.total_items):
-            
+
             current_time = time.time()
             elapsed = current_time - self.start_time
             progress_pct = (self.processed_items / self.total_items) * 100
-            
+
             # Estimate remaining time
             if self.processed_items > 0:
                 rate = self.processed_items / elapsed
                 remaining_items = self.total_items - self.processed_items
                 eta_seconds = remaining_items / rate if rate > 0 else 0
-                
+
                 if eta_seconds < 60:
                     eta_str = f"{eta_seconds:.0f}s"
                 else:
                     eta_str = f"{eta_seconds/60:.1f}min"
             else:
                 eta_str = "unknown"
-            
+
             # Log progress
             message = (f"{self.operation}: {self.processed_items}/{self.total_items} "
                       f"({progress_pct:.1f}%) - ETA: {eta_str}")
-            
+
             # Add memory info if available
             if self.memory_manager is not None:
                 memory_info = self.memory_manager.get_memory_info()
                 memory_gb = memory_info['current_usage_gb']
                 message += f" - Memory: {memory_gb:.1f}GB"
-            
+
             self.logger.info(message)
 
 
@@ -181,7 +181,7 @@ def setup_logging(level: Union[str, int] = logging.INFO,
                  include_timing: bool = True) -> logging.Logger:
     """
     Set up logging configuration for the toolkit.
-    
+
     Parameters
     ----------
     level : str or int
@@ -194,7 +194,7 @@ def setup_logging(level: Union[str, int] = logging.INFO,
         Whether to include memory monitoring in logs
     include_timing : bool
         Whether to include timing information in logs
-        
+
     Returns
     -------
     logging.Logger
@@ -203,59 +203,59 @@ def setup_logging(level: Union[str, int] = logging.INFO,
     # Convert string level to integer
     if isinstance(level, str):
         level = getattr(logging, level.upper())
-    
+
     # Create logger
     logger = logging.getLogger('white_noise_toolkit')
     logger.setLevel(level)
-    
+
     # Clear existing handlers
     logger.handlers.clear()
-    
+
     # Set default format
     if format_string is None:
         if include_timing:
             format_string = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         else:
             format_string = '%(name)s - %(levelname)s - %(message)s'
-    
+
     formatter = logging.Formatter(format_string)
-    
+
     # Console handler
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(level)
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
-    
+
     # File handler (if specified)
     if log_file is not None:
         log_file = Path(log_file)
         log_file.parent.mkdir(parents=True, exist_ok=True)
-        
+
         file_handler = logging.FileHandler(log_file)
         file_handler.setLevel(level)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
-    
+
     # Prevent duplicate logs
     logger.propagate = False
-    
+
     return logger
 
 
 def load_logging_config_from_yaml(config_path: Union[str, Path]) -> dict:
     """
     Load logging configuration from YAML file.
-    
+
     Parameters
     ----------
     config_path : str or Path
         Path to YAML configuration file
-        
+
     Returns
     -------
     dict
         Logging configuration
-        
+
     Raises
     ------
     ConfigurationError
@@ -264,14 +264,14 @@ def load_logging_config_from_yaml(config_path: Union[str, Path]) -> dict:
     try:
         with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
-        
+
         # Extract logging configuration
         logging_config = config.get('logging', {})
-        
+
         # Validate required fields
         valid_levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
         level = logging_config.get('level', 'INFO')
-        
+
         if level not in valid_levels:
             raise ConfigurationError(
                 f"Invalid logging level: {level}",
@@ -279,9 +279,9 @@ def load_logging_config_from_yaml(config_path: Union[str, Path]) -> dict:
                 value=level,
                 valid_range=f"One of {valid_levels}"
             )
-        
+
         return logging_config
-        
+
     except FileNotFoundError:
         raise ConfigurationError(f"Configuration file not found: {config_path}")
     except yaml.YAMLError as e:
@@ -291,12 +291,12 @@ def load_logging_config_from_yaml(config_path: Union[str, Path]) -> dict:
 def get_logger(name: Optional[str] = None) -> logging.Logger:
     """
     Get a logger instance for the toolkit.
-    
+
     Parameters
     ----------
     name : str, optional
         Logger name. If None, uses the calling module name.
-        
+
     Returns
     -------
     logging.Logger
@@ -310,30 +310,30 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
             name = frame.f_back.f_globals.get('__name__', 'white_noise_toolkit')
         else:
             name = 'white_noise_toolkit'
-    
+
     # Ensure it's under the toolkit namespace
     if name and not name.startswith('white_noise_toolkit'):
         name = f'white_noise_toolkit.{name}'
-    
+
     return logging.getLogger(name or 'white_noise_toolkit')
 
 
 def configure_logging_from_config(config: dict) -> logging.Logger:
     """
     Configure logging from configuration dictionary.
-    
+
     Parameters
     ----------
     config : dict
         Configuration dictionary with logging settings
-        
+
     Returns
     -------
     logging.Logger
         Configured logger
     """
     logging_config = config.get('logging', {})
-    
+
     return setup_logging(
         level=logging_config.get('level', 'INFO'),
         log_file=logging_config.get('log_file'),

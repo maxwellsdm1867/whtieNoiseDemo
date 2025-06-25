@@ -13,7 +13,7 @@ __email__ = "contact@whitenoise.toolkit"
 # Import main classes for easy access
 from .core.single_cell import SingleCellAnalyzer
 from .core.streaming_analyzer import (
-    create_stimulus_generator, 
+    create_stimulus_generator,
     create_spike_generator,
     create_aligned_generators
 )
@@ -56,15 +56,15 @@ __all__ = [
     'StreamingFilterExtractor',
     'NonparametricNonlinearity',
     'ParametricNonlinearity',
-    
+
     # Multi-electrode analysis
     'MultiElectrodeAnalyzer',
     'analyze_mea_data',
-    
+
     # Utilities
     'MemoryManager',
     'load_data',
-    'save_data', 
+    'save_data',
     'load_spikes',
     'SpikeProcessor',
     'StimulusProcessor',
@@ -72,21 +72,21 @@ __all__ = [
     'FilterMetrics',
     'NonlinearityMetrics',
     'ModelMetrics',
-    
+
     # Synthetic data and validation
     'SyntheticDataGenerator',
     'GroundTruthRecovery',
     'run_comprehensive_validation',
-    
+
     # Generator functions
     'create_stimulus_generator',
-    'create_spike_generator', 
+    'create_spike_generator',
     'create_aligned_generators',
-    
+
     # Logging
     'setup_logging',
     'get_logger',
-    
+
     # Exceptions
     'WhiteNoiseAnalysisError',
     'InsufficientDataError',
@@ -99,7 +99,7 @@ __all__ = [
     'NumericalInstabilityError',
     'FileFormatError',
     'ProcessingError',
-    
+
     # Package info
     '__version__'
 ]
@@ -109,11 +109,11 @@ def get_config_path():
     """Get path to default configuration file."""
     import os
     from pathlib import Path
-    
+
     # Get package directory
     package_dir = Path(__file__).parent
     config_path = package_dir / 'config' / 'default.yaml'
-    
+
     if config_path.exists():
         return str(config_path)
     else:
@@ -125,7 +125,7 @@ def load_default_config():
     """Load default configuration."""
     import yaml
     from pathlib import Path
-    
+
     config_path = get_config_path()
     if config_path and Path(config_path).exists():
         with open(config_path, 'r') as f:
@@ -157,7 +157,7 @@ try:
     if config:
         from .utils.logging_config import configure_logging_from_config
         configure_logging_from_config(config)
-except:
+except Exception:
     # Fallback to basic logging
     setup_logging(level='INFO')
 
@@ -166,25 +166,25 @@ def test_installation():
     """Quick test to verify installation."""
     try:
         import numpy as np
-        
+
         # Test basic imports
         from .core.single_cell import SingleCellAnalyzer
         from .synthetic.data_generator import SyntheticDataGenerator
-        
+
         # Create simple test
         analyzer = SingleCellAnalyzer(filter_length=10)
-        
+
         # Generate tiny synthetic dataset
         generator = SyntheticDataGenerator(
             filter_true=np.random.randn(10),
             nonlinearity_true=lambda x: np.exp(x)
         )
-        
+
         stimulus = generator.generate_white_noise_stimulus(100)
         spikes = generator.generate_responses(stimulus)
-        
+
         return True, "Installation test passed"
-        
+
     except Exception as e:
         return False, f"Installation test failed: {e}"
 

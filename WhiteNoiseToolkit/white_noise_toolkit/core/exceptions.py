@@ -10,11 +10,11 @@ from typing import Optional
 
 class WhiteNoiseAnalysisError(Exception):
     """Base exception for toolkit."""
-    
+
     def __init__(self, message: str, details: Optional[str] = None):
         """
         Initialize base exception.
-        
+
         Parameters
         ----------
         message : str
@@ -25,7 +25,7 @@ class WhiteNoiseAnalysisError(Exception):
         super().__init__(message)
         self.message = message
         self.details = details
-        
+
     def __str__(self) -> str:
         if self.details:
             return f"{self.message}\nDetails: {self.details}"
@@ -34,8 +34,8 @@ class WhiteNoiseAnalysisError(Exception):
 
 class InsufficientDataError(WhiteNoiseAnalysisError):
     """Raised when not enough spikes/data for reliable estimation."""
-    
-    def __init__(self, message: str, spike_count: Optional[int] = None, 
+
+    def __init__(self, message: str, spike_count: Optional[int] = None,
                  min_required: Optional[int] = None):
         """
         Parameters
@@ -58,7 +58,7 @@ class InsufficientDataError(WhiteNoiseAnalysisError):
 
 class MemoryLimitError(WhiteNoiseAnalysisError):
     """Raised when memory requirements exceed limits."""
-    
+
     def __init__(self, message: str, required_gb: Optional[float] = None,
                  available_gb: Optional[float] = None):
         """
@@ -82,7 +82,7 @@ class MemoryLimitError(WhiteNoiseAnalysisError):
 
 class StimulusValidationError(WhiteNoiseAnalysisError):
     """Raised when stimulus doesn't meet white noise assumptions."""
-    
+
     def __init__(self, message: str, validation_results: Optional[dict] = None):
         """
         Parameters
@@ -102,7 +102,7 @@ class StimulusValidationError(WhiteNoiseAnalysisError):
 
 class FilterExtractionError(WhiteNoiseAnalysisError):
     """Raised when filter extraction fails."""
-    
+
     def __init__(self, message: str, condition_number: Optional[float] = None):
         """
         Parameters
@@ -122,7 +122,7 @@ class FilterExtractionError(WhiteNoiseAnalysisError):
 
 class NonlinearityFittingError(WhiteNoiseAnalysisError):
     """Raised when nonlinearity fitting fails."""
-    
+
     def __init__(self, message: str, fitting_method: Optional[str] = None,
                  convergence_info: Optional[dict] = None):
         """
@@ -140,7 +140,7 @@ class NonlinearityFittingError(WhiteNoiseAnalysisError):
             details_parts.append(f"Method: {fitting_method}")
         if convergence_info:
             details_parts.append(f"Convergence info: {convergence_info}")
-        
+
         details = "; ".join(details_parts) if details_parts else None
         super().__init__(message, details)
         self.fitting_method = fitting_method
@@ -149,7 +149,7 @@ class NonlinearityFittingError(WhiteNoiseAnalysisError):
 
 class DataValidationError(WhiteNoiseAnalysisError):
     """Raised when input data validation fails."""
-    
+
     def __init__(self, message: str, expected_shape: Optional[tuple] = None,
                  actual_shape: Optional[tuple] = None):
         """
@@ -173,7 +173,7 @@ class DataValidationError(WhiteNoiseAnalysisError):
 
 class ConfigurationError(WhiteNoiseAnalysisError):
     """Raised when configuration parameters are invalid."""
-    
+
     def __init__(self, message: str, parameter: Optional[str] = None,
                  value: Optional[any] = None, valid_range: Optional[str] = None):
         """
@@ -195,7 +195,7 @@ class ConfigurationError(WhiteNoiseAnalysisError):
             details_parts.append(f"Value: {value}")
         if valid_range:
             details_parts.append(f"Valid range: {valid_range}")
-            
+
         details = "; ".join(details_parts) if details_parts else None
         super().__init__(message, details)
         self.parameter = parameter
@@ -205,7 +205,7 @@ class ConfigurationError(WhiteNoiseAnalysisError):
 
 class NumericalInstabilityError(WhiteNoiseAnalysisError):
     """Raised when numerical computations become unstable."""
-    
+
     def __init__(self, message: str, computation: Optional[str] = None,
                  suggestion: Optional[str] = None):
         """
@@ -223,7 +223,7 @@ class NumericalInstabilityError(WhiteNoiseAnalysisError):
             details_parts.append(f"Computation: {computation}")
         if suggestion:
             details_parts.append(f"Suggestion: {suggestion}")
-            
+
         details = "; ".join(details_parts) if details_parts else None
         super().__init__(message, details)
         self.computation = computation
@@ -232,8 +232,8 @@ class NumericalInstabilityError(WhiteNoiseAnalysisError):
 
 class FileFormatError(WhiteNoiseAnalysisError):
     """Raised when file format is unsupported or corrupted."""
-    
-    def __init__(self, message: str, filepath: Optional[str] = None, 
+
+    def __init__(self, message: str, filepath: Optional[str] = None,
                  format: Optional[str] = None):
         """
         Parameters
@@ -250,7 +250,7 @@ class FileFormatError(WhiteNoiseAnalysisError):
             details.append(f"File: {filepath}")
         if format:
             details.append(f"Format: {format}")
-        
+
         super().__init__(message, "; ".join(details) if details else None)
         self.filepath = filepath
         self.format = format
@@ -258,8 +258,8 @@ class FileFormatError(WhiteNoiseAnalysisError):
 
 class ProcessingError(WhiteNoiseAnalysisError):
     """Raised when data processing fails."""
-    
-    def __init__(self, message: str, operation: Optional[str] = None, 
+
+    def __init__(self, message: str, operation: Optional[str] = None,
                  data_info: Optional[str] = None):
         """
         Parameters
@@ -276,7 +276,7 @@ class ProcessingError(WhiteNoiseAnalysisError):
             details.append(f"Operation: {operation}")
         if data_info:
             details.append(f"Data: {data_info}")
-        
+
         super().__init__(message, "; ".join(details) if details else None)
         self.operation = operation
         self.data_info = data_info

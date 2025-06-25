@@ -7,13 +7,13 @@ with known ground truth and validating analysis results.
 
 from .data_generator import SyntheticDataGenerator
 from .validation import (
-    GroundTruthRecovery, ParameterSweep, 
+    GroundTruthRecovery, ParameterSweep,
     create_validation_report, run_comprehensive_validation
 )
 
 __all__ = [
     'SyntheticDataGenerator',
-    'GroundTruthRecovery', 
+    'GroundTruthRecovery',
     'ParameterSweep',
     'create_validation_report',
     'run_comprehensive_validation'
