@@ -1,0 +1,43 @@
+analysis:
+  bin_size: 0.008  # seconds
+  filter_length: 25  # time bins
+  chunk_size: 1000  # for streaming
+  regularization: 1e-6
+  memory_limit_gb: 8.0
+  
+nonlinearity:
+  method: 'nonparametric'  # or 'parametric'
+  n_bins: 25
+  parametric_model: 'exponential'  # 'exponential', 'cumulative_normal', 'sigmoid'
+  
+multi_electrode:
+  n_jobs: -1  # use all available cores
+  min_spike_count: 100  # minimum spikes per electrode
+  load_balancing: true
+  
+data_validation:
+  max_filter_length: 100  # prevent excessive memory usage
+  min_spike_count: 50     # minimum spikes for reliable estimation
+  max_chunk_size: 10000   # upper limit for memory safety
+  check_white_noise: true  # validate stimulus statistics
+  warn_non_stationary: true  # detect non-stationary stimuli
+  
+stimulus_validation:
+  mean_tolerance: 0.1      # acceptable deviation from zero mean
+  variance_tolerance: 0.2  # acceptable deviation from unit variance
+  correlation_threshold: 0.1  # maximum temporal correlation
+  
+performance:
+  filter_extraction_time_limit: 1.0    # seconds per 1000 time bins
+  memory_usage_limit_gb: 2.0           # for 10M time bins
+  streaming_overhead_limit: 0.1        # 10% overhead vs batch
+  parallel_efficiency_threshold: 0.8   # 80% scaling efficiency
+  
+logging:
+  level: 'INFO'
+  progress_bars: true
+  log_file: null  # or specify file path
+  log_memory_usage: true
+  log_timing: true
+  
+random_seed: 42  # for reproducible results

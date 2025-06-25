@@ -1,0 +1,80 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "white-noise-toolkit"
+version = "0.1.0"
+description = "Research-grade Python toolkit for white noise analysis of neuronal responses"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "White Noise Analysis Team", email = "contact@whitenoise.toolkit"}
+]
+keywords = ["neuroscience", "signal-processing", "white-noise", "spike-analysis"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "numpy>=1.21.0,<2.0.0",
+    "scipy>=1.7.0,<2.0.0",
+    "scikit-learn>=1.0.0,<2.0.0",
+    "matplotlib>=3.5.0,<4.0.0",
+    "seaborn>=0.11.0,<1.0.0",
+    "h5py>=3.6.0,<4.0.0",
+    "pandas>=1.3.0,<3.0.0",
+    "joblib>=1.1.0,<2.0.0",
+    "pyyaml>=6.0,<7.0.0",
+    "tqdm>=4.62.0,<5.0.0",
+    "numba>=0.56.0,<1.0.0",
+    "psutil>=5.8.0",
+    "hypothesis>=6.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=22.0.0",
+    "flake8>=5.0.0",
+    "mypy>=0.990",
+    "sphinx>=5.0.0",
+    "sphinx-rtd-theme>=1.0.0",
+]
+
+[project.scripts]
+wnt-test = "white_noise_toolkit.examples.installation_test:main"
+
+[tool.setuptools.packages.find]
+include = ["white_noise_toolkit*"]
+
+[tool.setuptools.package-data]
+"white_noise_toolkit" = ["config/*.yaml"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38', 'py39', 'py310', 'py311']
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "--cov=white_noise_toolkit --cov-report=html --cov-report=term-missing"
