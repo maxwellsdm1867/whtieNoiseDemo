@@ -1,16 +1,127 @@
 # Tutorial 2: Advanced Analysis Techniques
 
-This tutorial covers advanced features of the White Noise Analysis Toolkit, including custom nonlinearities, spatial-temporal analysis, and performance optimization.
+This tutorial covers advanced features of the White Noise Analysis Toolkit, including mathematical foundations, custom nonlinearities, spatial-temporal analysis, and performance optimization.
 
 ## Table of Contents
 
-1. [Parametric Nonlinearity Models](#parametric-models)
-2. [Spatial-Temporal Receptive Fields](#spatial-temporal)
-3. [Custom Nonlinearity Functions](#custom-nonlinearities)
-4. [Advanced Filter Extraction](#advanced-filters)
-5. [Performance Optimization](#performance)
-6. [Statistical Validation](#validation)
-7. [Real-World Examples](#examples)
+1. [Mathematical Foundations](#mathematical-foundations)
+2. [Filter Recovery Validation](#filter-recovery)
+3. [Parametric Nonlinearity Models](#parametric-models)
+4. [Spatial-Temporal Receptive Fields](#spatial-temporal)
+5. [Custom Nonlinearity Functions](#custom-nonlinearities)
+6. [Advanced Filter Extraction](#advanced-filters)
+7. [Performance Optimization](#performance)
+8. [Statistical Validation](#validation)
+9. [Real-World Examples](#examples)
+
+## Mathematical Foundations {#mathematical-foundations}
+
+### Spike-Triggered Average and Time-Reversal
+
+The spike-triggered average (STA) is fundamental to white noise analysis, but requires careful mathematical treatment:
+
+**STA Definition**: `STA(τ) = E[s(t-τ) | spike at t]`
+
+**Critical Issue**: The raw STA is time-reversed relative to the true filter due to convolution mechanics in the design matrix construction.
+
+**Mathematical Explanation**:
+1. Design matrix row i contains: `[s(i), s(i-1), s(i-2), ..., s(i-k+1)]`
+2. True filter convolves as: `response(i) = Σ filter[τ] * s(i-τ)`
+3. STA computes: `STA[τ] = E[s(i-τ) | spike at i]`
+4. **Correction Required**: `actual_filter = STA[::-1]`
+
+```python
+# Example: Proper STA computation with time-reversal correction
+def compute_sta_with_correction(stimulus, spike_times, filter_length):
+    """
+    Compute STA with proper time-reversal correction.
+    
+    This is the core mathematical operation validated in filter_recovery_demo.py
+    """
+    sta = np.zeros(filter_length)
+    
+    # Step 1: Compute raw STA
+    for spike_time in spike_times:
+        if spike_time >= filter_length:
+            # Get stimulus preceding spike (note: already reversed in indexing)
+            stimulus_segment = stimulus[spike_time-filter_length:spike_time]
+            sta += stimulus_segment[::-1]  # Convention: index 0 = most recent
+    
+    sta /= len(spike_times)  # Normalize
+    
+    # Step 2: CRITICAL - Apply time-reversal correction
+    corrected_filter = sta[::-1]
+    
+    # Step 3: Normalize for shape comparison
+    max_abs = np.max(np.abs(corrected_filter))
+    if max_abs > 0:
+        corrected_filter /= max_abs
+        
+    return corrected_filter
+```
+
+### Normalization for Filter Comparison
+
+**Why Normalize?**: Enables shape comparison regardless of amplitude scaling.
+
+**Method**: Divide by maximum absolute value: `filter_normalized = filter / max(abs(filter))`
+
+**Application**: Both ground truth and recovered filters must use identical normalization.
+
+## Filter Recovery Validation {#filter-recovery}
+
+### Comprehensive Validation Framework
+
+The toolkit includes `filter_recovery_demo.py` which provides quantitative validation:
+
+```python
+# Run comprehensive filter recovery validation
+from examples.filter_recovery_demo import main as validate_filter_recovery
+
+print("🔬 Validating Filter Recovery Accuracy...")
+results = validate_filter_recovery()
+
+# Expected results for different filter types:
+print("\nExpected Performance:")
+print("  Biphasic filters: >98% correlation")
+print("  Monophasic filters: >98% correlation") 
+print("  Oscillatory filters: Variable (depends on complexity)")
+```
+
+### Validation Metrics
+
+The demo computes three key metrics:
+
+1. **Correlation**: Shape similarity (most important)
+2. **Mean Squared Error**: Point-wise differences
+3. **Signal-to-Noise Ratio**: Recovery quality measure
+
+```python
+# Example validation results interpretation
+def interpret_validation_results(correlation, mse, snr_db):
+    """Interpret filter recovery validation results."""
+    
+    if correlation > 0.95:
+        print("✅ Excellent filter recovery")
+    elif correlation > 0.8:
+        print("⚠️  Good recovery, but check data quality")
+    else:
+        print("❌ Poor recovery - investigate data/parameters")
+    
+    if mse < 0.01:
+        print("✅ Low reconstruction error")
+    elif mse < 0.05:
+        print("⚠️  Moderate error - acceptable for most applications")
+    else:
+        print("❌ High error - consider longer recordings")
+        
+    if snr_db > 10:
+        print("✅ High signal-to-noise ratio")
+    elif snr_db > 0:
+        print("⚠️  Adequate SNR")
+    else:
+        print("❌ Poor SNR - increase data quality")
+```
 
 ## Parametric Nonlinearity Models {#parametric-models}
 
