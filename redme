@@ -1,0 +1,1368 @@
+# AI Code Generation Instructions for White Noise Analysis Toolkit
+
+## Overview
+You are tasked with implementing a research-grade Python toolkit for white noise analysis of neuronal responses. This toolkit extracts linear filters and static nonlinearities from stimulus-response data using streaming computation for memory efficiency.
+
+## Project Structure
+Create the following directory structure:
+
+```
+WhiteNoiseToolkit/
+├── setup.py
+├── pyproject.toml
+├── README.md
+├── requirements.txt
+├── config/
+│   └── default.yaml
+├── white_noise_toolkit/
+│   ├── __init__.py
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── streaming_analyzer.py
+│   │   ├── design_matrix.py
+│   │   ├── filter_extraction.py
+│   │   ├── nonlinearity_estimation.py
+│   │   ├── single_cell.py
+│   │   └── exceptions.py
+│   ├── multi_electrode/
+│   │   ├── __init__.py
+│   │   ├── mea_analyzer.py
+│   │   └── parallel_processing.py
+│   ├── synthetic/
+│   │   ├── __init__.py
+│   │   ├── data_generator.py
+│   │   └── validation.py
+│   ├── utils/
+│   │   ├── __init__.py
+│   │   ├── io_handlers.py
+│   │   ├── preprocessing.py
+│   │   ├── metrics.py
+│   │   ├── visualization.py
+│   │   ├── logging_config.py
+│   │   ├── memory_manager.py
+│   │   └── diagnostics.py
+│   └── examples/
+│       ├── __init__.py
+│       ├── tutorial_reproduction.py
+│       ├── spatial_analysis_demo.py
+│       ├── mea_demo.py
+│       └── installation_test.py
+├── tests/
+│   ├── __init__.py
+│   ├── test_core/
+│   ├── test_multi_electrode/
+│   ├── test_synthetic/
+│   └── test_utils/
+└── docs/
+    ├── conf.py
+    ├── index.rst
+    └── tutorials/
+```
+
+## Implementation Requirements
+
+### 1. Dependencies and Setup
+
+#### requirements.txt
+```
+numpy>=1.21.0,<2.0.0
+scipy>=1.7.0,<2.0.0
+scikit-learn>=1.0.0,<2.0.0
+matplotlib>=3.5.0,<4.0.0
+seaborn>=0.11.0,<1.0.0
+h5py>=3.6.0,<4.0.0
+pandas>=1.3.0,<3.0.0
+joblib>=1.1.0,<2.0.0
+pyyaml>=6.0,<7.0.0
+tqdm>=4.62.0,<5.0.0
+numba>=0.56.0,<1.0.0
+psutil>=5.8.0  # for memory monitoring
+hypothesis>=6.0.0  # for property-based testing
+```
+
+#### setup.py
+Include standard setuptools configuration with entry points and proper metadata. Add console script for quick testing:
+```python
+entry_points={
+    'console_scripts': [
+        'wnt-test=white_noise_toolkit.examples.installation_test:main',
+    ],
+}
+```
+
+### 2. Core Implementation Guidelines
+
+#### 2.1 Exception Handling (`core/exceptions.py`)
+
+```python
+class WhiteNoiseAnalysisError(Exception):
+    """Base exception for toolkit"""
+    pass
+
+class InsufficientDataError(WhiteNoiseAnalysisError):
+    """Raised when not enough spikes/data for reliable estimation"""
+    pass
+
+class MemoryLimitError(WhiteNoiseAnalysisError):
+    """Raised when memory requirements exceed limits"""
+    pass
+
+class StimulusValidationError(WhiteNoiseAnalysisError):
+    """Raised when stimulus doesn't meet white noise assumptions"""
+    pass
+
+class FilterExtractionError(WhiteNoiseAnalysisError):
+    """Raised when filter extraction fails"""
+    pass
+
+class NonlinearityFittingError(WhiteNoiseAnalysisError):
+    """Raised when nonlinearity fitting fails"""
+    pass
+```
+
+#### 2.2 Memory Management (`utils/memory_manager.py`)
+
+```python
+class MemoryManager:
+    def __init__(self, max_memory_gb=8.0, warning_threshold=0.8):
+        """
+        Monitor and manage memory usage during analysis.
+        
+        Parameters:
+        -----------
+        max_memory_gb : float
+            Maximum memory usage in GB
+        warning_threshold : float
+            Fraction of max_memory_gb at which to issue warnings
+        """
+        
+    def get_current_usage(self):
+        """Get current memory usage in GB"""
+        
+    def estimate_chunk_size(self, data_shape, dtype, n_chunks_target=100):
+        """Estimate optimal chunk size based on available memory"""
+        
+    def validate_memory_requirements(self, data_shape, dtype, filter_length):
+        """Check if analysis is feasible with current memory limits"""
+        
+    def adaptive_chunk_size(self, base_chunk_size, current_usage):
+        """Dynamically adjust chunk size based on memory usage"""
+```
+
+#### 2.3 Data Generator Interface (`core/streaming_analyzer.py`)
+
+```python
+def create_stimulus_generator(stimulus_data, chunk_size=1000, memory_mapped=True):
+    """
+    Create generator that yields stimulus chunks of specified size.
+    
+    Parameters:
+    -----------
+    stimulus_data : np.ndarray or str
+        Stimulus array or path to HDF5 file
+    chunk_size : int
+        Size of chunks to yield
+    memory_mapped : bool
+        Use memory mapping for large files
+        
+    Yields:
+    -------
+    np.ndarray : Stimulus chunk
+    """
+
+def create_spike_generator(spike_data, chunk_size=1000, align_with_stimulus=True):
+    """
+    Create generator that yields spike chunks aligned with stimulus chunks.
+    
+    Parameters:
+    -----------
+    spike_data : np.ndarray or str
+        Spike array or path to HDF5 file
+    chunk_size : int
+        Size of chunks to yield (must match stimulus chunks)
+    align_with_stimulus : bool
+        Ensure temporal alignment across chunks
+        
+    Yields:
+    -------
+    np.ndarray : Spike chunk
+    """
+
+def validate_generators(stimulus_gen, spike_gen):
+    """Validate that generators are properly aligned and configured"""
+```
+
+#### 2.4 Design Matrix Construction (`core/design_matrix.py`)
+
+**Key Requirements:**
+- Implement Hankel matrix construction for temporal stimulus history
+- Support both 1D temporal and multi-dimensional spatial-temporal stimuli
+- Use zero-padding at temporal edges (filter_length - 1 bins)
+- Implement streaming construction with configurable chunk sizes
+- Handle memory efficiently for large spatial stimuli
+- **NEW**: Proper temporal continuity across chunks
+
+**Critical Implementation Details:**
+```python
+class StreamingDesignMatrix:
+    def __init__(self, filter_length, spatial_dims=None, n_colors=1):
+        """
+        Parameters:
+        -----------
+        filter_length : int
+            Number of time bins (e.g., 25)
+        spatial_dims : tuple or None
+            (height, width) tuple or None for temporal-only
+        n_colors : int
+            Number of color channels (1 for monochrome, 3 for RGB)
+        """
+        self.filter_length = filter_length
+        self.spatial_dims = spatial_dims
+        self.n_colors = n_colors
+        self.buffer = None  # Store filter_length-1 samples for continuity
+        self._initialize_dimensions()
+        
+    def build_hankel_chunk(self, stimulus_chunk, is_first_chunk=False):
+        """
+        Build design matrix chunk with proper temporal continuity.
+        
+        Parameters:
+        -----------
+        stimulus_chunk : np.ndarray
+            Input: stimulus_chunk with shape (n_time_bins, *spatial_dims, n_colors)
+            For 1D temporal: (n_time_bins,)
+        is_first_chunk : bool
+            Whether this is the first chunk (use zero padding)
+            
+        Returns:
+        --------
+        np.ndarray : Design matrix (n_time_bins, filter_length * spatial_size * n_colors)
+        """
+        
+    def _handle_temporal_continuity(self, stimulus_chunk, is_first_chunk):
+        """Handle temporal continuity between chunks using buffer"""
+        
+    def _update_buffer(self, stimulus_chunk):
+        """Update buffer with last filter_length-1 samples"""
+        
+    def _validate_input_shape(self, stimulus_chunk):
+        """Validate input stimulus chunk shape"""
+```
+
+**Algorithm Details:**
+- Use `np.lib.stride_tricks.sliding_window_view` for efficient Hankel construction
+- Flatten spatial dimensions but preserve temporal structure
+- For first chunk: `padded_stim = np.concatenate([zeros, stimulus], axis=0)`
+- For subsequent chunks: `padded_stim = np.concatenate([self.buffer, stimulus], axis=0)`
+- Each row of design matrix contains stimulus history for that time bin
+- Update buffer after each chunk: `self.buffer = stimulus_chunk[-self.filter_length+1:]`
+
+#### 2.5 Filter Extraction (`core/filter_extraction.py`)
+
+**Implement Two Methods:**
+
+1. **Spike-Triggered Average (STA):**
+```python
+class StreamingFilterExtractor:
+    def __init__(self):
+        self.sta_accumulator = None
+        self.xtx_accumulator = None  # For whitened STA
+        self.xty_accumulator = None  # For whitened STA
+        self.spike_count = 0
+        self.n_samples = 0
+        
+    def compute_sta_streaming(self, design_chunk, spike_chunk):
+        """
+        Accumulate STA computation.
+        Formula: STA = (X^T * y) / n_spikes
+        """
+        # Validate inputs
+        self._validate_chunk_shapes(design_chunk, spike_chunk)
+        
+        # Accumulate: cross_correlation += design_chunk.T @ spike_chunk
+        cross_corr = design_chunk.T @ spike_chunk
+        
+        if self.sta_accumulator is None:
+            self.sta_accumulator = cross_corr
+        else:
+            self.sta_accumulator += cross_corr
+            
+        self.spike_count += np.sum(spike_chunk)
+        self.n_samples += len(spike_chunk)
+        
+    def finalize_sta(self):
+        """Finalize STA computation"""
+        if self.spike_count == 0:
+            raise InsufficientDataError("No spikes found in data")
+        return self.sta_accumulator / self.spike_count
+```
+
+2. **Whitened STA (Maximum Likelihood):**
+```python
+    def compute_whitened_sta_streaming(self, design_chunk, spike_chunk, regularization=1e-6):
+        """
+        Accumulate whitened STA computation.
+        Formula: w = (X^T * X)^-1 * (X^T * y)
+        """
+        # Validate inputs
+        self._validate_chunk_shapes(design_chunk, spike_chunk)
+        
+        # Accumulate: xtx += design_chunk.T @ design_chunk
+        # Accumulate: xty += design_chunk.T @ spike_chunk
+        xtx = design_chunk.T @ design_chunk
+        xty = design_chunk.T @ spike_chunk
+        
+        if self.xtx_accumulator is None:
+            self.xtx_accumulator = xtx
+            self.xty_accumulator = xty
+        else:
+            self.xtx_accumulator += xtx
+            self.xty_accumulator += xty
+            
+    def finalize_whitened_sta(self, regularization=1e-6):
+        """
+        Finalize whitened STA with regularization.
+        Check condition number and warn if ill-conditioned.
+        """
+        if self.xtx_accumulator is None:
+            raise FilterExtractionError("No data accumulated for whitened STA")
+            
+        # Add regularization to diagonal
+        xtx_reg = self.xtx_accumulator + regularization * np.eye(self.xtx_accumulator.shape[0])
+        
+        # Check condition number
+        condition_number = np.linalg.cond(xtx_reg)
+        if condition_number > 1e12:
+            import warnings
+            warnings.warn(f"Design matrix is ill-conditioned (cond={condition_number:.2e}). "
+                         f"Consider increasing regularization.", UserWarning)
+        
+        # Solve: w = (X^T*X + reg*I)^-1 * (X^T*y)
+        return np.linalg.solve(xtx_reg, self.xty_accumulator)
+```
+
+**Critical Implementation Notes:**
+- Use online accumulation for memory efficiency
+- Add regularization to prevent numerical instability
+- Check condition number and warn if matrix is ill-conditioned
+- Support both methods in same streaming pass
+- Validate chunk shapes and handle edge cases
+
+#### 2.6 Nonlinearity Estimation (`core/nonlinearity_estimation.py`)
+
+**Implement Two Approaches:**
+
+1. **Non-parametric (Binning Method):**
+```python
+class NonparametricNonlinearity:
+    def __init__(self, n_bins=25):
+        """
+        Bin generator signal values and compute mean spike rate per bin.
+        
+        Parameters:
+        -----------
+        n_bins : int
+            Number of bins for discretizing generator signal
+        """
+        self.n_bins = n_bins
+        self.bin_edges = None
+        self.bin_centers = None
+        self.spike_rates = None
+        self.fitted = False
+        
+    def fit(self, generator_signal, spike_counts):
+        """
+        Fit non-parametric nonlinearity using binning method.
+        
+        Parameters:
+        -----------
+        generator_signal : np.ndarray
+            Filter outputs (design_matrix @ filter_weights)
+        spike_counts : np.ndarray
+            Observed spike counts per time bin
+        """
+        # Use np.histogram to bin generator signal
+        # Compute mean spike rate in each bin
+        # Handle empty bins with interpolation or warnings
+        # Create interpolation function for continuous evaluation
+        
+    def predict(self, generator_signal):
+        """Evaluate nonlinearity at given generator signal values"""
+        if not self.fitted:
+            raise NonlinearityFittingError("Nonlinearity not fitted")
+        # Use scipy.interpolate.interp1d with extrapolation
+        
+    def get_function(self):
+        """Return callable function object"""
+        return lambda x: self.predict(x)
+```
+
+2. **Parametric Fitting:**
+```python
+class ParametricNonlinearity:
+    def __init__(self, model_type='exponential'):
+        """
+        Fit parametric nonlinearity models.
+        
+        Parameters:
+        -----------
+        model_type : str
+            'exponential', 'cumulative_normal', 'sigmoid'
+        """
+        self.model_type = model_type
+        self.parameters = None
+        self.fitted = False
+        self._setup_model()
+        
+    def fit(self, generator_signal, spike_counts):
+        """
+        Fit parametric nonlinearity using maximum likelihood estimation.
+        
+        Models:
+        - Exponential: N(g) = exp(g)
+        - Cumulative normal: N(g) = α * Φ(β*g + γ)
+        - Sigmoid: N(g) = α / (1 + exp(-β*(g - γ)))
+        """
+        # Use scipy.optimize.minimize with Poisson likelihood
+        # Include parameter bounds to ensure positivity
+        # Return fitted parameters and goodness-of-fit metrics
+        
+    def predict(self, generator_signal):
+        """Evaluate fitted nonlinearity"""
+        
+    def get_aic(self, generator_signal, spike_counts):
+        """Compute AIC for model comparison"""
+        
+    def get_function(self):
+        """Return callable function object"""
+```
+
+**Implementation Details:**
+- For binning: use equal-width bins based on generator signal range
+- Handle edge cases (empty bins, extreme values) with warnings
+- For parametric: use maximum likelihood estimation with bounds
+- Return callable function objects
+- Include goodness-of-fit metrics (AIC, R², log-likelihood)
+
+#### 2.7 Single Cell Analyzer (`core/single_cell.py`)
+
+**Main Class Structure:**
+```python
+class SingleCellAnalyzer:
+    def __init__(self, bin_size=0.008, filter_length=25, spatial_dims=None, n_colors=1, 
+                 memory_limit_gb=8.0):
+        """
+        Initialize single-cell white noise analyzer.
+        
+        Parameters:
+        -----------
+        bin_size : float
+            Temporal bin size in seconds
+        filter_length : int
+            Number of time bins for filter
+        spatial_dims : tuple or None
+            (height, width) for spatial stimuli
+        n_colors : int
+            Number of color channels
+        memory_limit_gb : float
+            Memory limit for analysis
+        """
+        # Initialize all components
+        self.design_matrix_builder = StreamingDesignMatrix(
+            filter_length, spatial_dims, n_colors)
+        self.filter_extractor = StreamingFilterExtractor()
+        self.memory_manager = MemoryManager(max_memory_gb=memory_limit_gb)
+        
+        # Results storage
+        self.filter_w = None
+        self.sta = None
+        self.nonlinearity_N = None
+        self.performance_metrics = {}
+        self.fitted = False
+        
+    def fit_streaming(self, stimulus_generator, spike_generator, chunk_size=1000,
+                     nonlinearity_method='nonparametric', **kwargs):
+        """
+        Main analysis pipeline - two passes:
+        Pass 1: Extract filter
+        Pass 2: Estimate nonlinearity
+        
+        Parameters:
+        -----------
+        stimulus_generator : generator
+            Yields stimulus chunks
+        spike_generator : generator  
+            Yields spike chunks
+        chunk_size : int
+            Chunk size for streaming
+        nonlinearity_method : str
+            'nonparametric' or 'parametric'
+        """
+        from ..utils.logging_config import get_logger
+        logger = get_logger(__name__)
+        
+        # Validate generators
+        validate_generators(stimulus_generator, spike_generator)
+        
+        logger.info("Starting filter extraction...")
+        self._extract_filter_streaming(stimulus_generator, spike_generator, chunk_size)
+        
+        logger.info("Starting nonlinearity estimation...")
+        self._estimate_nonlinearity_streaming(
+            stimulus_generator, spike_generator, chunk_size, nonlinearity_method, **kwargs)
+        
+        logger.info("Computing performance metrics...")
+        self._compute_performance_metrics(stimulus_generator, spike_generator, chunk_size)
+        
+        self.fitted = True
+        logger.info("Analysis complete!")
+        
+    def predict(self, stimulus):
+        """Use extracted filter and nonlinearity to predict spike rates"""
+        if not self.fitted:
+            raise FilterExtractionError("Model not fitted. Call fit_streaming() first.")
+            
+        # Build design matrix
+        design_matrix = self.design_matrix_builder.build_hankel_chunk(stimulus, is_first_chunk=True)
+        
+        # Compute generator signal
+        generator_signal = design_matrix @ self.filter_w
+        
+        # Apply nonlinearity
+        return self.nonlinearity_N.predict(generator_signal)
+        
+    def get_results(self):
+        """Return structured results dictionary"""
+        if not self.fitted:
+            raise FilterExtractionError("Model not fitted. Call fit_streaming() first.")
+            
+        return {
+            'filter': {
+                'weights': self.filter_w,
+                'sta': self.sta,
+                'temporal_profile': self._extract_temporal_profile(),
+                'spatial_profile': self._extract_spatial_profile(),
+                'spectral_weights': self._extract_spectral_weights()
+            },
+            'nonlinearity': {
+                'type': self.nonlinearity_N.__class__.__name__,
+                'function': self.nonlinearity_N.get_function(),
+                'parameters': getattr(self.nonlinearity_N, 'parameters', None),
+                'goodness_of_fit': self._get_nonlinearity_metrics()
+            },
+            'performance': self.performance_metrics,
+            'metadata': self._get_metadata()
+        }
+```
+
+**Critical Implementation:**
+- Use generators for streaming input with proper validation
+- Implement proper logging with progress tracking using tqdm
+- Validate input data shapes and types with helpful error messages
+- Handle edge cases (no spikes, insufficient data) with custom exceptions
+- Store intermediate results for debugging
+- Include memory monitoring and adaptive chunk sizing
+
+### 3. Multi-Electrode Implementation (`multi_electrode/mea_analyzer.py`)
+
+**Key Requirements:**
+```python
+class MultiElectrodeAnalyzer:
+    def __init__(self, **kwargs):
+        """Same parameters as SingleCellAnalyzer plus MEA-specific options"""
+        self.base_config = kwargs
+        self.analyzers = {}  # One analyzer per electrode
+        self.memory_manager = MemoryManager(kwargs.get('memory_limit_gb', 8.0))
+        
+    def fit_streaming(self, stimulus_generator, spike_data_multi, chunk_size=1000, 
+                     n_jobs=-1, min_spike_count=100):
+        """
+        Parallel analysis across electrodes.
+        
+        Parameters:
+        -----------
+        stimulus_generator : generator
+            Shared stimulus data
+        spike_data_multi : np.ndarray or generator
+            Shape: (n_time_bins, n_electrodes)
+        chunk_size : int
+            Chunk size for streaming
+        n_jobs : int
+            Number of parallel jobs (-1 for all cores)
+        min_spike_count : int
+            Minimum spikes required per electrode
+        """
+        # Use joblib.Parallel for electrode-wise parallel processing
+        # Share stimulus data efficiently across workers
+        # Filter electrodes by minimum spike count
+        # Collect results from all electrodes
+        # Include electrode quality metrics
+        
+    def get_filters(self):
+        """Return dict: {electrode_id: filter_array}"""
+        
+    def get_nonlinearities(self):
+        """Return dict: {electrode_id: nonlinearity_function}"""
+        
+    def get_population_summary(self):
+        """Return population-level statistics and visualizations"""
+```
+
+**Implementation Details:**
+- Use `joblib.Parallel` with `delayed` for parallel processing
+- Implement proper memory sharing for stimulus data using `joblib.Memory`
+- Handle variable numbers of electrodes with automatic detection
+- Include electrode quality metrics (spike count, filter SNR, convergence)
+- Support subset processing for debugging and memory constraints
+- Implement load balancing for heterogeneous electrode activity
+
+### 4. Synthetic Data Generation (`synthetic/data_generator.py`)
+
+**Requirements:**
+```python
+class SyntheticDataGenerator:
+    def __init__(self, filter_true, nonlinearity_true, noise_level=1.0, random_seed=None):
+        """
+        Generate synthetic data with known ground truth.
+        
+        Parameters:
+        -----------
+        filter_true : np.ndarray
+            True linear filter
+        nonlinearity_true : callable
+            True nonlinearity function
+        noise_level : float
+            Poisson noise scaling factor
+        random_seed : int or None
+            Random seed for reproducibility
+        """
+        
+    def generate_white_noise_stimulus(self, n_time_bins, spatial_dims=None, n_colors=1,
+                                    contrast_std=1.0):
+        """
+        Generate Gaussian white noise stimulus.
+        Support both temporal and spatial-temporal.
+        """
+        
+    def generate_responses(self, stimulus, bin_size=0.008):
+        """
+        Apply true filter and nonlinearity, add Poisson spiking noise.
+        Return spike times or binned spike counts.
+        """
+        
+    def create_test_dataset(self, duration_minutes=10, **kwargs):
+        """Complete dataset generation pipeline with metadata"""
+        
+    def create_tutorial_dataset(self):
+        """Generate dataset compatible with MATLAB tutorials for testing"""
+```
+
+**Implementation Details:**
+- Support multiple filter types (separable, non-separable, spatial-temporal)
+- Implement all nonlinearity types supported by main toolkit
+- Use proper Poisson spike generation with `np.random.poisson`
+- Include metadata for validation and ground truth comparison
+- Generate both spike times and binned data formats
+- Support batch generation for large datasets
+
+### 5. Enhanced Utilities Implementation
+
+#### 5.1 Validation Framework (`synthetic/validation.py`)
+
+```python
+class ValidationFramework:
+    def __init__(self, tolerance=0.05):
+        self.tolerance = tolerance
+        
+    def validate_white_noise_assumptions(self, stimulus):
+        """
+        Check stimulus statistics and white noise properties.
+        
+        Returns:
+        --------
+        dict : Validation results with warnings/errors
+        """
+        # Check stimulus statistics (mean ≈ 0, unit variance)
+        # Test for temporal correlations using autocorrelation
+        # Verify radial symmetry in stimulus space
+        # Check for non-stationarity
+        
+    def validate_filter_extraction(self, filter_weights, sta, correlation_threshold=0.8):
+        """
+        Validate extracted filter quality.
+        
+        Parameters:
+        -----------
+        filter_weights : np.ndarray
+            Extracted filter
+        sta : np.ndarray
+            Spike-triggered average
+        correlation_threshold : float
+            Minimum correlation between filter and STA
+        """
+        # Check filter shape and magnitude
+        # Compare with STA for consistency
+        # Validate filter temporal characteristics
+        # Check for artifacts or numerical issues
+        
+    def cross_validate_model(self, analyzer_class, stimulus, spikes, n_folds=5):
+        """
+        Implement temporal cross-validation avoiding data leakage.
+        
+        Returns:
+        --------
+        dict : Cross-validation metrics
+        """
+        # Split data temporally (not randomly)
+        # Fit on training folds, test on validation fold
+        # Return validation metrics and confidence intervals
+        
+    def validate_extraction_accuracy(self, analyzer, true_filter, true_nonlinearity,
+                                   correlation_threshold=0.95):
+        """
+        Compare extracted components with ground truth.
+        
+        Returns:
+        --------
+        dict : Accuracy metrics and validation results
+        """
+```
+
+#### 5.2 I/O Handlers (`utils/io_handlers.py`)
+```python
+def load_matlab_data(filepath):
+    """Load MATLAB tutorial-compatible data using scipy.io"""
+    
+def load_numpy_data(stim_file, spike_file):
+    """Load from separate numpy files with validation"""
+    
+def load_hdf5_data(filepath, stimulus_key='stimulus', spikes_key='spikes'):
+    """Load from HDF5 format with memory mapping support"""
+    
+def save_results(results, filepath, format='hdf5', compression=True):
+    """Save analysis results with metadata and compression"""
+    
+def create_memory_mapped_stimulus(stimulus_array, filepath):
+    """Create memory-mapped file for large stimulus arrays"""
+```
+
+#### 5.3 Preprocessing (`utils/preprocessing.py`)
+```python
+def bin_spike_times(spike_times, bin_edges, validate=True):
+    """Convert spike times to binned counts with validation"""
+    
+def normalize_stimulus(stimulus, method='zscore', axis=0):
+    """Stimulus normalization with multiple methods"""
+    
+def detect_outliers(data, method='iqr', threshold=3.0):
+    """Outlier detection with multiple algorithms"""
+    
+def validate_stimulus_response_alignment(stimulus, spikes):
+    """Check temporal alignment between stimulus and response"""
+```
+
+#### 5.4 Enhanced Metrics (`utils/metrics.py`)
+```python
+def compute_r_squared(y_true, y_pred):
+    """Coefficient of determination with confidence intervals"""
+    
+def compute_log_likelihood_poisson(spike_counts, predicted_rates):
+    """Poisson log-likelihood with numerical stability checks"""
+    
+def compute_single_spike_information(spike_counts, predicted_rates, baseline_rate):
+    """Single-spike information in bits/spike (Brenner et al. 2000)"""
+    
+def compute_aic(log_likelihood, n_parameters):
+    """Akaike Information Criterion"""
+    
+def compute_bic(log_likelihood, n_parameters, n_samples):
+    """Bayesian Information Criterion"""
+    
+def bootstrap_confidence_intervals(metric_func, data, n_bootstrap=1000, alpha=0.05):
+    """Bootstrap confidence intervals for metrics"""
+```
+
+#### 5.5 Enhanced Visualization (`utils/visualization.py`)
+```python
+def plot_filter_temporal(filter_weights, bin_size, title="Linear Filter", 
+                        confidence_intervals=None):
+    """Plot temporal profile with optional confidence bands"""
+    
+def plot_filter_spatial(filter_weights, spatial_dims, title="Spatial Filter"):
+    """Plot spatial receptive field with proper scaling"""
+    
+def plot_nonlinearity(generator_signal, spike_rate, nonlinearity_func, 
+                     title="Static Nonlinearity", show_confidence=True):
+    """Plot nonlinearity with data points, fitted curve, and confidence bands"""
+    
+def plot_model_performance(y_true, y_pred, metrics_dict):
+    """Comprehensive performance summary plot"""
+    
+def plot_mea_summary(filters_dict, nonlinearities_dict, spatial_layout=None):
+    """Multi-electrode overview with spatial organization"""
+    
+def plot_convergence_diagnostics(analyzer):
+    """Plot filter convergence and analysis diagnostics"""
+```
+
+#### 5.6 Diagnostics Tools (`utils/diagnostics.py`)
+```python
+class DiagnosticTools:
+    def __init__(self, analyzer):
+        self.analyzer = analyzer
+        
+    def plot_convergence_diagnostics(self):
+        """
+        Plot filter convergence across chunks.
+        Show accumulation statistics and memory usage over time.
+        """
+        
+    def generate_analysis_report(self, results):
+        """
+        Generate comprehensive analysis summary.
+        Include data quality metrics and recommendations.
+        """
+        
+    def check_numerical_stability(self):
+        """Check for numerical issues in analysis"""
+        
+    def validate_streaming_consistency(self, batch_results):
+        """Compare streaming vs batch results for consistency"""
+```
+
+### 6. Performance Specifications
+
+Add performance targets and monitoring:
+
+```python
+# Performance targets (add to config/default.yaml)
+PERFORMANCE_TARGETS = {
+    'filter_extraction_time': 1.0,  # seconds per 1000 time bins
+    'memory_usage_gb': 2.0,  # for 10M time bins temporal data
+    'streaming_overhead': 0.1,  # 10% overhead vs batch processing
+    'parallel_efficiency': 0.8,  # 80% scaling up to 8 cores
+    'numerical_precision': 1e-10,  # numerical precision for comparisons
+}
+```
+
+### 7. Configuration Management
+
+#### 7.1 Enhanced Configuration (`config/default.yaml`)
+```yaml
+analysis:
+  bin_size: 0.008  # seconds
+  filter_length: 25  # time bins
+  chunk_size: 1000  # for streaming
+  regularization: 1e-6
+  memory_limit_gb: 8.0
+  
+nonlinearity:
+  method: 'nonparametric'  # or 'parametric'
+  n_bins: 25
+  parametric_model: 'exponential'  # 'exponential', 'cumulative_normal', 'sigmoid'
+  
+multi_electrode:
+  n_jobs: -1  # use all available cores
+  min_spike_count: 100  # minimum spikes per electrode
+  load_balancing: true
+  
+data_validation:
+  max_filter_length: 100  # prevent excessive memory usage
+  min_spike_count: 50     # minimum spikes for reliable estimation
+  max_chunk_size: 10000   # upper limit for memory safety
+  check_white_noise: true  # validate stimulus statistics
+  warn_non_stationary: true  # detect non-stationary stimuli
+  
+stimulus_validation:
+  mean_tolerance: 0.1      # acceptable deviation from zero mean
+  variance_tolerance: 0.2  # acceptable deviation from unit variance
+  correlation_threshold: 0.1  # maximum temporal correlation
+  
+performance:
+  filter_extraction_time_limit: 1.0    # seconds per 1000 time bins
+  memory_usage_limit_gb: 2.0           # for 10M time bins
+  streaming_overhead_limit: 0.1        # 10% overhead vs batch
+  parallel_efficiency_threshold: 0.8   # 80% scaling efficiency
+  
+logging:
+  level: 'INFO'
+  progress_bars: true
+  log_file: null  # or specify file path
+  log_memory_usage: true
+  log_timing: true
+  
+random_seed: 42  # for reproducible results
+```
+
+#### 7.2 Configuration Validation
+```python
+def validate_config(config_dict):
+    """
+    Validate configuration parameters with helpful error messages.
+    
+    Parameters:
+    -----------
+    config_dict : dict
+        Configuration dictionary
+        
+    Raises:
+    -------
+    ValueError : If configuration is invalid
+    """
+    # Validate all parameters are within acceptable ranges
+    # Check for conflicting settings
+    # Provide helpful suggestions for optimization
+```
+
+### 8. Testing Requirements
+
+**For each module, implement comprehensive testing:**
+
+#### 8.1 Unit Tests
+- Unit tests with >90% coverage using pytest
+- Property-based testing using `hypothesis` for robust edge case testing
+- Numerical accuracy tests against known analytical solutions
+- Performance regression tests with benchmarking
+
+#### 8.2 Specific Test Cases
+```python
+# Test filter extraction accuracy with synthetic data
+def test_filter_extraction_accuracy():
+    """
+    Generate synthetic data with known filter.
+    Extract filter using toolkit.
+    Assert correlation > 0.95 with ground truth.
+    """
+    # Create known filter (e.g., difference of Gaussians)
+    # Generate white noise stimulus and responses
+    # Extract filter using SingleCellAnalyzer
+    # Assert np.corrcoef(true_filter, extracted_filter)[0,1] > 0.95
+
+# Test streaming vs batch consistency  
+def test_streaming_consistency():
+    """
+    Compare streaming vs batch results.
+    Assert numerical equivalence within tolerance.
+    """
+    # Implement batch version for comparison
+    # Run same analysis with streaming and batch
+    # Assert np.allclose(streaming_result, batch_result, rtol=1e-10)
+
+# Test multi-electrode parallel processing
+def test_mea_parallel_consistency():
+    """
+    Compare parallel vs sequential processing.
+    Assert identical results.
+    """
+    # Run MEA analysis with n_jobs=1 and n_jobs>1
+    # Assert identical results across all electrodes
+
+# Test memory limitations
+def test_memory_limits():
+    """
+    Test behavior under memory constraints.
+    Verify graceful handling of memory limits.
+    """
+    # Simulate low memory conditions
+    # Verify adaptive chunk sizing works
+    # Test memory warnings and errors
+
+# Test numerical stability
+def test_numerical_stability():
+    """
+    Test with ill-conditioned design matrices.
+    Verify regularization prevents failures.
+    """
+    # Create correlated stimuli (ill-conditioned)
+    # Verify analysis completes with warnings
+    # Test various regularization levels
+```
+
+#### 8.3 Integration Tests
+```python
+def test_end_to_end_workflow():
+    """Test complete analysis pipeline"""
+    # Load example data
+    # Run full analysis
+    # Validate all outputs
+    # Check performance metrics
+
+def test_matlab_tutorial_reproduction():
+    """Reproduce MATLAB tutorial results exactly"""
+    # Load tutorial data
+    # Run equivalent analysis
+    # Assert results match within numerical precision
+
+def test_large_dataset_handling():
+    """Test streaming with large datasets"""
+    # Generate large synthetic dataset
+    # Verify streaming analysis completes
+    # Check memory usage stays within limits
+```
+
+### 9. Documentation Requirements
+
+#### 9.1 API Documentation
+- Use Google-style docstrings for all functions/classes
+- Include parameter types, shapes, and descriptions with examples
+- Provide usage examples in docstrings
+- Auto-generate documentation with Sphinx
+- Include mathematical formulations in docstrings
+
+#### 9.2 Tutorial Notebooks
+Create comprehensive Jupyter notebooks:
+
+```python
+# examples/tutorial_reproduction.py
+"""
+Reproduce MATLAB tutorial results step-by-step.
+Demonstrate exact equivalence with published methods.
+"""
+
+# examples/spatial_analysis_demo.py  
+"""
+Analyze spatial-temporal receptive fields.
+Show spatial, temporal, and spectral filter components.
+"""
+
+# examples/mea_demo.py
+"""
+Multi-electrode array analysis with population statistics.
+Demonstrate parallel processing and population visualization.
+"""
+
+# examples/synthetic_validation.py
+"""
+Validate toolkit accuracy using synthetic data.
+Show ground truth recovery and confidence intervals.
+"""
+
+# examples/advanced_parameter_tuning.py
+"""
+Guide for optimizing analysis parameters.
+Memory management, regularization, and performance tuning.
+"""
+```
+
+### 10. Code Quality Requirements
+
+#### 10.1 Style and Standards
+- Follow PEP 8 style guide with Black formatter
+- Use type hints throughout with `from typing import`
+- Maximum line length: 88 characters
+- Use descriptive variable names and comprehensive docstrings
+- Include type annotations for all public functions
+
+#### 10.2 Enhanced Error Handling
+```python
+# Validate input shapes and types with helpful messages
+def validate_stimulus_response_shapes(stimulus, spikes):
+    """Validate stimulus and response data compatibility."""
+    if len(stimulus) != len(spikes):
+        raise ValueError(
+            f"Stimulus and spike data lengths don't match: "
+            f"{len(stimulus)} vs {len(spikes)}. "
+            f"Check temporal alignment and binning."
+        )
+    
+    if stimulus.ndim < 1:
+        raise ValueError("Stimulus must be at least 1-dimensional")
+        
+    if not np.isfinite(stimulus).all():
+        raise ValueError("Stimulus contains non-finite values (NaN/Inf)")
+
+# Provide helpful error messages for common issues
+def check_filter_convergence(filter_weights, tolerance=1e-6):
+    """Check if filter extraction succeeded."""
+    if np.all(np.abs(filter_weights) < tolerance):
+        raise FilterExtractionError(
+            "Filter extraction failed - all weights near zero. "
+            "Possible causes:\n"
+            "1. Check stimulus-response temporal alignment\n"
+            "2. Verify sufficient spikes in data\n"
+            "3. Check stimulus contrast/variance\n"
+            "4. Consider reducing regularization"
+        )
+        
+def check_sufficient_data(spike_counts, min_spikes=100):
+    """Validate sufficient data for reliable estimation."""
+    total_spikes = np.sum(spike_counts)
+    if total_spikes < min_spikes:
+        raise InsufficientDataError(
+            f"Insufficient spikes for reliable estimation: "
+            f"{total_spikes} < {min_spikes}. "
+            f"Consider longer recording or higher stimulus contrast."
+        )
+```
+
+#### 10.3 Performance Optimization
+```python
+# Use @numba.jit for computational bottlenecks
+@numba.jit(nopython=True)
+def fast_hankel_construction(stimulus, filter_length):
+    """Optimized Hankel matrix construction"""
+    
+# Implement proper memory management
+def cleanup_large_arrays(*arrays):
+    """Explicitly delete large arrays and trigger garbage collection"""
+    for arr in arrays:
+        del arr
+    import gc
+    gc.collect()
+
+# Use numpy broadcasting instead of loops
+def vectorized_nonlinearity_binning(generator_signal, spike_counts, bin_edges):
+    """Vectorized binning for nonlinearity estimation"""
+    # Use np.digitize and np.bincount for efficiency
+```
+
+### 11. Installation and Testing
+
+#### 11.1 Installation Test (`examples/installation_test.py`)
+```python
+def main():
+    """
+    Quick test to verify correct installation and basic functionality.
+    Run with: python -m white_noise_toolkit.examples.installation_test
+    """
+    print("Testing White Noise Toolkit installation...")
+    
+    # Test imports
+    try:
+        from white_noise_toolkit.core import SingleCellAnalyzer
+        from white_noise_toolkit.synthetic import SyntheticDataGenerator
+        print("✓ All imports successful")
+    except ImportError as e:
+        print(f"✗ Import failed: {e}")
+        return False
+    
+    # Test basic functionality with synthetic data
+    try:
+        # Generate small test dataset
+        generator = SyntheticDataGenerator.create_simple_test()
+        stimulus, spikes = generator.create_test_dataset(duration_minutes=1)
+        
+        # Run analysis
+        analyzer = SingleCellAnalyzer(filter_length=10)
+        analyzer.fit_streaming([stimulus], [spikes], chunk_size=100)
+        
+        # Check results
+        results = analyzer.get_results()
+        assert results['filter']['weights'] is not None
+        assert results['nonlinearity']['function'] is not None
+        
+        print("✓ Basic analysis completed successfully")
+        print("White Noise Toolkit installation verified!")
+        return True
+        
+    except Exception as e:
+        print(f"✗ Analysis failed: {e}")
+        return False
+
+if __name__ == "__main__":
+    success = main()
+    sys.exit(0 if success else 1)
+```
+
+### 12. Example Usage Patterns
+
+**Implement these comprehensive usage examples:**
+
+```python
+# Single-cell temporal analysis (MATLAB tutorial compatible)
+def example_temporal_analysis():
+    """Reproduce MATLAB tutorial workflow"""
+    from white_noise_toolkit import SingleCellAnalyzer
+    from white_noise_toolkit.utils import load_matlab_data
+    
+    # Load data
+    stimulus, spike_times = load_matlab_data('tutorial_data.mat')
+    
+    # Configure analyzer
+    analyzer = SingleCellAnalyzer(
+        bin_size=0.008,         # 8ms bins
+        filter_length=25,       # 200ms filter
+        spatial_dims=None       # temporal only
+    )
+    
+    # Run streaming analysis
+    stim_gen = create_stimulus_generator(stimulus, chunk_size=1000)
+    spike_gen = create_spike_generator(spike_times, chunk_size=1000)
+    
+    analyzer.fit_streaming(stim_gen, spike_gen, 
+                          nonlinearity_method='nonparametric')
+    
+    # Get results and visualize
+    results = analyzer.get_results()
+    plot_filter_temporal(results['filter']['temporal_profile'])
+    plot_nonlinearity(results['nonlinearity'])
+
+# Spatial-temporal analysis
+def example_spatial_analysis():
+    """Analyze spatial-temporal receptive fields"""
+    analyzer = SingleCellAnalyzer(
+        bin_size=0.016,           # 16ms bins  
+        filter_length=15,         # 240ms filter
+        spatial_dims=(32, 32),    # 32x32 pixel stimulus
+        n_colors=3               # RGB stimulus
+    )
+    
+    # Load large spatial stimulus with memory mapping
+    stimulus = load_hdf5_data('spatial_stimulus.h5', memory_mapped=True)
+    spikes = load_hdf5_data('spike_responses.h5')
+    
+    # Configure for memory efficiency
+    chunk_size = analyzer.memory_manager.estimate_chunk_size(
+        stimulus.shape, stimulus.dtype, n_chunks_target=50)
+    
+    # Run analysis
+    analyzer.fit_streaming(
+        create_stimulus_generator(stimulus, chunk_size),
+        create_spike_generator(spikes, chunk_size)
+    )
+    
+    # Visualize spatial and temporal components
+    results = analyzer.get_results()
+    plot_filter_spatial(results['filter']['spatial_profile'])
+    plot_filter_temporal(results['filter']['temporal_profile'])
+
+# Multi-electrode analysis with quality control
+def example_mea_analysis():
+    """Multi-electrode array analysis with population statistics"""
+    from white_noise_toolkit import MultiElectrodeAnalyzer
+    
+    # Configure MEA analyzer
+    mea_analyzer = MultiElectrodeAnalyzer(
+        bin_size=0.008,
+        filter_length=25,
+        spatial_dims=(64, 64),
+        n_colors=1,
+        memory_limit_gb=16.0
+    )
+    
+    # Load MEA data
+    stimulus = load_hdf5_data('mea_stimulus.h5')
+    spike_data = load_hdf5_data('mea_responses.h5')  # (time, electrodes)
+    
+    # Run parallel analysis with quality control
+    mea_analyzer.fit_streaming(
+        create_stimulus_generator(stimulus),
+        spike_data,
+        chunk_size=1000,
+        n_jobs=8,
+        min_spike_count=200
+    )
+    
+    # Analyze population results
+    filters = mea_analyzer.get_filters()
+    nonlinearities = mea_analyzer.get_nonlinearities()
+    summary = mea_analyzer.get_population_summary()
+    
+    # Visualize population
+    plot_mea_summary(filters, nonlinearities, spatial_layout=electrode_layout)
+
+# Synthetic data validation
+def example_synthetic_validation():
+    """Validate toolkit accuracy using synthetic data"""
+    from white_noise_toolkit.synthetic import SyntheticDataGenerator, ValidationFramework
+    
+    # Create ground truth components
+    true_filter = create_dog_filter(sigma_center=2, sigma_surround=5)
+    true_nonlinearity = lambda x: np.exp(x)  # Exponential
+    
+    # Generate synthetic dataset
+    generator = SyntheticDataGenerator(
+        true_filter, true_nonlinearity, 
+        noise_level=1.0, random_seed=42
+    )
+    
+    stimulus, spikes = generator.create_test_dataset(
+        duration_minutes=20, 
+        spatial_dims=(16, 16),
+        contrast_std=0.3
+    )
+    
+    # Extract components
+    analyzer = SingleCellAnalyzer(filter_length=len(true_filter))
+    analyzer.fit_streaming(
+        create_stimulus_generator(stimulus),
+        create_spike_generator(spikes)
+    )
+    
+    # Validate accuracy
+    validator = ValidationFramework()
+    accuracy_metrics = validator.validate_extraction_accuracy(
+        analyzer, true_filter, true_nonlinearity
+    )
+    
+    print(f"Filter correlation: {accuracy_metrics['filter_correlation']:.3f}")
+    print(f"Nonlinearity R²: {accuracy_metrics['nonlinearity_r2']:.3f}")
+```
+
+### 13. Implementation Order and Milestones
+
+#### **Phase 1: Core Foundation (Week 1-2)**
+1. Project structure and configuration
+2. Exception classes and basic utilities
+3. Memory manager and logging setup
+4. Design matrix construction with streaming
+5. Basic filter extraction (STA and whitened STA)
+6. Unit tests for core components
+
+#### **Phase 2: Single-Cell Analysis (Week 3-4)**
+7. Nonlinearity estimation (both methods)
+8. SingleCellAnalyzer integration
+9. Streaming generators and validation
+10. Performance metrics and diagnostics
+11. Integration tests and MATLAB tutorial reproduction
+
+#### **Phase 3: Utilities and Validation (Week 5-6)**
+12. I/O handlers for multiple formats
+13. Preprocessing and validation framework
+14. Visualization tools
+15. Synthetic data generation
+16. Cross-validation and accuracy testing
+
+#### **Phase 4: Multi-Electrode Support (Week 7-8)**
+17. Multi-electrode analyzer with parallel processing
+18. Population statistics and quality control
+19. Advanced visualization for MEA data
+20. Performance optimization and memory sharing
+
+#### **Phase 5: Documentation and Examples (Week 9-10)**
+21. Comprehensive documentation and tutorials
+22. Example notebooks and use cases
+23. Installation testing and packaging
+24. Performance benchmarking and optimization
+
+#### **Phase 6: Testing and Validation (Week 11-12)**
+25. Comprehensive test suite completion
+26. Property-based testing with hypothesis
+27. Performance regression testing
+28. Final validation against published results
+
+### 14. Critical Success Criteria
+
+1. **Numerical Accuracy**: Reproduce MATLAB tutorial results within `rtol=1e-10`
+2. **Memory Efficiency**: Handle datasets >10GB with <8GB RAM usage
+3. **Scalability**: Linear scaling with number of electrodes up to 1000 channels
+4. **Accuracy**: >95% correlation with ground truth on synthetic data
+5. **Test Coverage**: >90% code coverage with comprehensive edge case testing
+6. **Documentation**: Complete API docs and tutorial notebooks
+7. **Performance**: Meet all specified performance targets
+8. **Robustness**: Graceful handling of edge cases with helpful error messages
+
+### 15. Final Implementation Notes
+
+- **Start with Phase 1** and implement each component thoroughly before proceeding
+- **Each module must be independently testable** with clear interfaces
+- **Include comprehensive logging** at all levels for debugging
+- **Validate inputs rigorously** with helpful error messages
+- **Optimize for common use cases** while supporting advanced scenarios
+- **Document mathematical foundations** in code comments and docstrings
+- **Test extensively** with both synthetic and real data
+- **Profile performance** and optimize bottlenecks
+- **Follow semantic versioning** for releases
+- **Maintain backward compatibility** within major versions
+
+This enhanced specification provides comprehensive guidance for implementing a production-quality white noise analysis toolkit that meets research-grade standards while being robust, efficient, and user-friendly.
